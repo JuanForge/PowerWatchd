@@ -1,2 +1,23 @@
 # PowerWatchd
-Open source project dedicated to the intelligent power management of Linux servers running 24/7. It monitors electrical status and UPS systems, detects power outages or anomalies, and automatically executes scheduled actions to protect services, prevent data corruption, and ensure system continuity.
+
+**Projet open source dédié à la gestion intelligente de l’alimentation des serveurs Linux fonctionnant 24/7.**
+
+Il surveille l’état électrique et les UPS, détecte les coupures ou anomalies, et exécute automatiquement des actions planifiées pour protéger les services, éviter la corruption des données et garantir la continuité du système.
+
+## Aperçu
+
+PowerWatchd est un daemon léger pour **serveurs Linux (Debian 12 testé)**, conçu pour protéger les services lors de coupures UPS.  
+Il communique avec systemd pour arrêter proprement les services selon l’état de la batterie de l’UPS et les dépendances entre services.
+
+Caractéristiques principales :
+- Spécialisé pour les UPS
+- Détection des événements **OnBattery** via USB HID (NUT)
+- Arrêts propres immédiats des services
+
+## Fonctionnalités
+
+- Détection des événements **OnBattery** sur l’UPS
+- Exécution de **séquences d’arrêt de services prédéfinies** avec respect des dépendances
+- Seuils basés sur **le pourcentage de batterie restante** pour déclencher les arrêts
+- Totalement automatisé, **aucune interface CLI ou web nécessaire**
+- Fonctionne comme un **service systemd**

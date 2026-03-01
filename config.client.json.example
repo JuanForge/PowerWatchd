@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "internal:0.0.2",
+  "beep": true,
+  "offlineServer": {
+    "retry": 5,
+    "retryIntervalSec": 2,
+    "tcpTimeoutSec": 2,
+    "shutdown": true
+  },
+  "OnBattery": {
+    "shutdown": {"percent": 25},
+    "StopTask": [
+      {
+        "name": "tor"
+      },
+      {
+        "name": "nginx"
+      },
+      {
+        "name": "mongod"
+      },
+      {
+        "name": "site",
+        "percent": 85,
+        "dependency": ["nginx", "mongod"]
+      },
+      {
+        "name": "nginx2",
+        "percent": 75
+      },
+      {
+        "name": "App",
+        "dependency": ["tor", "nginx", "mongod"]
+      },
+      {"name": "mongod2"}
+    ]
+  }
+}
