@@ -18,7 +18,7 @@ def keepalive(session: protocol.network):
     try:
         while True:
             session.send({"type": "ping"})
-            time.sleep(5)
+            time.sleep(4)
     except:
         print(f"KEEP ALIVE : {traceback.format_exc()}")
 

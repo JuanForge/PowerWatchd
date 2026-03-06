@@ -48,9 +48,9 @@ class UPS:
     
 
 def client(sock: socket.socket, ups: UPS):
-    timeoutNoPing = 20
+    timeoutNoPing = 10
     try:
-        sock.settimeout(2)
+        sock.settimeout(1.5)
         sesssion = protocol.network(sock)
         start_time: dict = {
                         "init": time.monotonic(),
