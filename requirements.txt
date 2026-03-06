@@ -2,3 +2,6 @@ pydbus==0.6.0
 
 # protocol
 cbor2==5.8.0
+
+# backend 1
+nut2==2.1.1
