@@ -21,3 +21,9 @@ Caractéristiques principales :
 - Seuils basés sur **le pourcentage de batterie restante** pour déclencher les arrêts
 - Totalement automatisé, **aucune interface CLI ou web nécessaire**
 - Fonctionne comme un **service systemd**
+
+## Backend
+- 0 : Stable et testé depuis longtemps
+- 1 : En cours de développement
+- 2 : Dernière version expérimentale : très rapide, faible consommation de ressources
+- valeur par defaut : 2

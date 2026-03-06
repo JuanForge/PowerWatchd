@@ -4,20 +4,32 @@ import time
 import socket
 import threading
 import traceback
-import subprocess
 from typing import TypedDict
 
 from src import protocol
 from version import __version__, __schemaVersion__
+from src.ups import backend0
+from src.ups import backend1
+from src.ups import backend2
 
 class StatusDict(TypedDict):
     ups_status: str
     battery_charge: str
 class UPS:
-    def __init__(self, cacheTime: int):
+    def __init__(self, cacheTime: int, backend: int, ups_name: str):
         self.lock = threading.Lock()
         self.cache = {}
         self.timelifecache = cacheTime
+        
+        if backend == 0:
+            self.backend = backend0.session(ups_name=ups_name)
+        elif backend == 1:
+            raise RuntimeError("Not implemented yet. Please use backend 2.")
+            # self.backend = backend1.session()
+        elif backend == 2:
+            self.backend = backend2.session(ups_name=ups_name)
+        else:
+            raise RuntimeError("Invalid backend number.")
     
     def setTimeLifeCache(self, x: int | float):
         with self.lock:
@@ -35,28 +47,6 @@ class UPS:
             else:
                 return self.cache["data"]
     
-    def _status(self, ups_name='ecoEaton', host='localhost'):
-        try:
-            result = subprocess.run(
-                ['upsc', f'{ups_name}@{host}'],
-                capture_output=True, text=True, timeout=5
-            )
-            if result.returncode != 0:
-                print("Erreur: Impossible d'interroger l'UPS.")
-                print(result.stderr.strip())
-                return None
-            
-            info = {}
-            for line in result.stdout.splitlines():
-                if ':' in line:
-                    key, val = line.split(':', 1)
-                    info[key.strip().replace('.', '_')] = val.strip()
-            
-            return info
-        except Exception as e:
-            print(f"Exception lors de la vérification UPS : {e}")
-            print(traceback.format_exc())
-            return None
 
 def client(sock: socket.socket, ups: UPS):
     timeoutNoPing = 20
@@ -102,18 +92,16 @@ def client(sock: socket.socket, ups: UPS):
 
 if __name__ == "__main__":
     with open('config.server.json', 'r') as file:
-        JSON = json.load(file)
+        JSON:dict = json.load(file)
     
     if JSON["schemaVersion"] != __schemaVersion__:
         sys.exit(109)
     
-    def test(JSON):
-        JSON["cacheUPStime"]
-    
-    test(JSON)
-    
     try:
-        ups = UPS(cacheTime=JSON["cacheUPStime"])
+        ups = UPS(cacheTime=JSON["cacheUPStime"],
+                    backend=JSON.get("UPSbackend", 2),
+                    ups_name=JSON["UPSname"])
+        
         sock = server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("127.0.0.1", 2152))

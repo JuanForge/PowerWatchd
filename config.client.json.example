@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "internal:0.0.2",
+  "schemaVersion": "schema:0.0.1",
   "beep": true,
   "offlineServer": {
     "retry": 5,
