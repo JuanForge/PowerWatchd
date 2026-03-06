@@ -24,8 +24,7 @@ class UPS:
         if backend == 0:
             self.backend = backend0.session(ups_name=ups_name)
         elif backend == 1:
-            raise RuntimeError("Not implemented yet. Please use backend 2.")
-            # self.backend = backend1.session()
+            self.backend = backend1.session(ups_name=ups_name)
         elif backend == 2:
             self.backend = backend2.session(ups_name=ups_name)
         else:

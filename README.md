@@ -24,6 +24,6 @@ Caractéristiques principales :
 
 ## Backend
 - 0 : Stable et testé depuis longtemps
-- 1 : En cours de développement
+- 1 : En test : fonctionne mais pas encore stabilisé
 - 2 : Dernière version expérimentale : très rapide, faible consommation de ressources
 - valeur par defaut : 2
