@@ -38,7 +38,7 @@ class UPS:
     def status(self) -> StatusDict:
         with self.lock:
             if self.cache.get("time", 0) < time.monotonic() - self.timelifecache:
-                self.cache["data"] = self._status()
+                self.cache["data"] = self.backend.status()
                 self.cache["time"] = time.monotonic()
                 if self.cache["data"] == None:
                     raise RuntimeError("UPS data stale ( 32 )")
