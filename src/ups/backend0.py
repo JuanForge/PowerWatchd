@@ -21,7 +21,7 @@ class session:
             for line in result.stdout.splitlines():
                 if ':' in line:
                     key, val = line.split(':', 1)
-                    info[key.strip().replace('.', '_')] = val.strip()
+                    info[key.strip()] = val.strip()
             
             return info
         except Exception as e:

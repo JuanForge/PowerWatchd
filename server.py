@@ -67,15 +67,15 @@ def client(sock: socket.socket, ups: UPS):
                     pass
                 
                 data = ups.status()
-                if "OB" in data["ups_status"]:
+                if "OB" in data["ups.status"]:
                     sesssion.send({"type": "UPS",
                                     "status": False,
-                                    "battery.charge": int(data["battery_charge"])
+                                    "battery.charge": int(data["battery.charge"])
                                 })
                 else:
                     sesssion.send({"type": "UPS",
                                     "status": True,
-                                    "battery.charge": int(data["battery_charge"])
+                                    "battery.charge": int(data["battery.charge"])
                                 })
                 
                 time.sleep(1)

@@ -7,6 +7,7 @@ echo "Tip: If you are not a developer, select 'stable'."
 read -p "> " choix
 
 if [ "$choix" = "commit" ]; then
+    git checkout main
     git pull
 elif [ "$choix" = "stable" ]; then
     git fetch --tags
