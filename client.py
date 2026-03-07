@@ -207,6 +207,7 @@ if __name__ == "__main__":
             except Exception as e:
                 print(str(e))
                 i += 1
+                buzzer.beep(3000, 500)
                 time.sleep(JSON["offlineServer"]["retryIntervalSec"])
         else:
             if JSON["offlineServer"]["shutdown"] == True:

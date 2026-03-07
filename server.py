@@ -17,10 +17,11 @@ class StatusDict(TypedDict):
     ups_status: str
     battery_charge: str
 class UPS:
-    def __init__(self, cacheTime: int, backend: int, ups_name: str):
+    def __init__(self, cacheTime: int, backend: int, ups_name: str, debug: bool = False):
         self.lock = threading.Lock()
         self.cache = {}
         self.timelifecache = cacheTime
+        self.debug = debug
         
         if backend == 0:
             self.backend = backend0.session(ups_name=ups_name)
@@ -38,7 +39,10 @@ class UPS:
     def status(self) -> StatusDict:
         with self.lock:
             if self.cache.get("time", 0) < time.monotonic() - self.timelifecache:
+                start_time = time.monotonic()
                 self.cache["data"] = self.backend.status()
+                if self.debug:
+                    print(f"time for status ups : {time.monotonic() - start_time}")
                 self.cache["time"] = time.monotonic()
                 if self.cache["data"] == None:
                     raise RuntimeError("UPS data stale ( 32 )")
@@ -133,6 +137,13 @@ if __name__ == "__main__":
         help=f"UPS backend ID, default : {JSON['UPSbackend']}",
         choices=[0, 1, 2]
     )
+    
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="enable debugging output for the program"
+    )
+    
     args, unknown = parser.parse_known_args()
     
     if unknown:
@@ -146,7 +157,7 @@ if __name__ == "__main__":
     try:
         ups = UPS(cacheTime=JSON["cacheUPStime"],
                     backend=JSON.get("UPSbackend", 2),
-                    ups_name=JSON["UPSname"])
+                    ups_name=JSON["UPSname"], debug=args.debug)
         
         sock = server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

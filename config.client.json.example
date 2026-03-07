@@ -3,7 +3,7 @@
   "beep": true,
   "offlineServer": {
     "retry": 5,
-    "retryIntervalSec": 2,
+    "retryIntervalSec": 1,
     "tcpTimeoutSec": 2,
     "shutdown": true
   },
