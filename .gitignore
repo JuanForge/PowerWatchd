@@ -1,3 +1,4 @@
+libbuzzer_iopl.so
 .venv*
 venv*
 config.client.json

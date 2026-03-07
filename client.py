@@ -3,6 +3,7 @@ import sys
 import time
 import json
 import socket
+import argparse
 import threading
 import traceback
 
@@ -13,6 +14,7 @@ from src import buzzer
 from src import systemd
 from src import protocol
 from version import __version__, __schemaVersion__
+
 
 def keepalive(session: protocol.network):
     try:
@@ -78,7 +80,7 @@ def unit(percent: int, task: dict, bus: SystemBus, tasks: list):
         return False
 
 class main:
-    def __init__(self, JSON, save: dict = None,):
+    def __init__(self, JSON, save: dict = None, beep: bool = True):
         if save == None:
             self.data = {}
         else:
@@ -91,11 +93,12 @@ class main:
         self.oldstatus = None
         self.threads = None
         self.service_table = []
+        self.beep = beep
     
     def update(self, status: bool, charge: int):
         if status == False:
             print("Battery-powered server.")
-            if self.threadbeep == None:
+            if self.beep == True and self.threadbeep == None:
                 self.threadbeep = threading.Thread(target=audio, args=(self.threadbeepSTOP,), daemon=True)
                 self.threadbeep.start()
             
@@ -117,7 +120,7 @@ class main:
             if self.oldstatus == False:
                 print("Server on mains power.")
             
-            if self.threadbeep != None:
+            if self.beep == True and self.threadbeep != None:
                 self.threadbeepSTOP[0] = True
                 self.threadbeep.join()
                 self.threadbeep = None
@@ -143,11 +146,13 @@ class main:
     def save(self) -> list: return []
 
 if __name__ == "__main__":
-    buzzer.beep(2000, 500)
+    if True == True:
+        buzzer.beep(2000, 500)
+    
     os.chdir(Path(__file__).resolve().parent)
     
     with open('config.client.json', 'r') as file:
-        JSON = json.load(file)
+        JSON: dict = json.load(file)
     
     if JSON["schemaVersion"] != __schemaVersion__:
         sys.exit(153)
@@ -156,7 +161,38 @@ if __name__ == "__main__":
     if not AntiBoucle(tasks):
         sys.exit(157)
     
-    app = main(JSON)
+    parser = argparse.ArgumentParser(
+        description="Configuration CLI",
+        allow_abbrev=False
+    )
+    
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1"
+    )
+    
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=2152
+    )
+    
+    parser.add_argument(
+        "--no-beep",
+        action="store_false",
+        help="disable the beep sound for debug"
+    )
+    
+    args, unknown = parser.parse_known_args()
+    
+    if unknown:
+        print(f"Error: Unrecognized arguments: {', '.join(unknown)}")
+        sys.exit(187)
+    
+    JSON["beep"] = args.no_beep
+    
+    app = main(JSON, beep=JSON["beep"])
     
     try:
         i = 0
