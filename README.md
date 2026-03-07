@@ -27,3 +27,6 @@ Caractéristiques principales :
 - 1 : En test : fonctionne mais pas encore stabilisé
 - 2 : Dernière version expérimentale : très rapide, faible consommation de ressources
 - valeur par defaut : 2
+
+## Update
+- corection : handshake entre client et serveur qui permet de rentré en retry de connexion, ce qui permet de faire fonctionner le shutdown ( couper la machine si non réponce du serveur ) de non réponce du serveur, c'est au tunnel ssh dû a SSH qui accepter la connexion a la place du serveur.

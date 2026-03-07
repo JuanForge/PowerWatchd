@@ -202,8 +202,15 @@ if __name__ == "__main__":
                 sock.settimeout(JSON["offlineServer"]["tcpTimeoutSec"])
                 print(f"Connect ( try: {i+1})...")
                 sock.connect(("127.0.0.1", 2152))
-                print("Connect : OK")
-                break
+                
+                session = protocol.network(sock)
+                
+                session.send({"type": "handshake"})
+                if session.recv()["type"] == "handshake_ack":
+                    print("Connect : OK")
+                    break
+                else:
+                    raise ConnectionError("Handshake failed")
             except Exception as e:
                 print(str(e))
                 i += 1
@@ -217,8 +224,6 @@ if __name__ == "__main__":
                 sys.exit(180)
         
         sock.settimeout(1)
-        
-        session = protocol.network(sock)
         
         threading.Thread(target=keepalive, args=(session,), daemon=True).start()
         

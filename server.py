@@ -61,6 +61,11 @@ def client(sock: socket.socket, ups: UPS):
                         "init": time.monotonic(),
                         "ping": time.monotonic()
                     }
+        
+        if sesssion.recv()["type"] != "handshake":
+            raise ConnectionError("Expected handshake message")
+        sesssion.send({"type": "handshake_ack"})
+        
         while True:
             try:
                 data = sesssion.recv()
