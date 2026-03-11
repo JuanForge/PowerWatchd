@@ -29,4 +29,4 @@ Caractéristiques principales :
 - valeur par defaut : 2
 
 ## Update
-- corection : handshake entre client et serveur qui permet de rentré en retry de connexion, ce qui permet de faire fonctionner le shutdown ( couper la machine si non réponce du serveur ) de non réponce du serveur, c'est au tunnel ssh dû a SSH qui accepter la connexion a la place du serveur.
+Modification du code permettant de réduire la charge sur le réseau (puisque moins besoin de requêtes du client pour l'actualisation), tout en offrant un temps de réactivité réduit pour signaler un changement sur le serveur vers le client.

@@ -230,8 +230,12 @@ if __name__ == "__main__":
         while True:
             try:
                 data = session.recv()
+                
                 if data["type"] == "UPS":
                     app.update(data["status"], data["battery.charge"])
+                
+                elif data["type"] == "pong":
+                    pass
             except socket.timeout:
                 continue
     except KeyboardInterrupt:

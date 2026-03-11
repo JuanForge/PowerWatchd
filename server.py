@@ -53,9 +53,10 @@ class UPS:
     
 
 def client(sock: socket.socket, ups: UPS):
+    LastStatus: str = ""
     timeoutNoPing = 10
     try:
-        sock.settimeout(1.5)
+        sock.settimeout(0.5)
         sesssion = protocol.network(sock)
         start_time: dict = {
                         "init": time.monotonic(),
@@ -73,21 +74,22 @@ def client(sock: socket.socket, ups: UPS):
                 start_time["ping"] = time.monotonic()
                 
                 if data["type"] == "ping":
-                    pass
+                    sesssion.send({"type": "pong"})
                 
                 data = ups.status()
-                if "OB" in data["ups.status"]:
-                    sesssion.send({"type": "UPS",
-                                    "status": False,
-                                    "battery.charge": int(data["battery.charge"])
-                                })
-                else:
-                    sesssion.send({"type": "UPS",
-                                    "status": True,
-                                    "battery.charge": int(data["battery.charge"])
-                                })
                 
-                time.sleep(1)
+                if data["ups.status"] != LastStatus:
+                    LastStatus = data["ups.status"]
+                    
+                    if "OB" in data["ups.status"]:
+                        status = False
+                    else:
+                        status = True
+                    
+                    sesssion.send({"type": "UPS",
+                                    "status": status,
+                                    "battery.charge": int(data["battery.charge"])
+                                })
             except socket.timeout:
                 if time.monotonic() - start_time["ping"] > timeoutNoPing:
                     return
