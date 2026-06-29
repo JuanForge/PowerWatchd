@@ -117,6 +117,7 @@ def prometheus_thread(metrics: prometheus.session, host: str, port: int, ups: UP
     sock.bind((host, port))
     sock.listen(20)
     
+    print(f"Prometheus listen {host}:{port}")
     while True:
         try:
             conn, addr = sock.accept()
@@ -210,7 +211,7 @@ if __name__ == "__main__":
                     ups_name=JSON["UPSname"], debug=args.debug)
         
         if args.prometheus:
-            threading.Thread(target=prometheus_thread, args=(metrics, args.host, args.prometheus_port, ups), daemon=True)
+            threading.Thread(target=prometheus_thread, args=(metrics, args.host, args.prometheus_port, ups), daemon=True).start()
         
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
