@@ -5,7 +5,12 @@ from prometheus_client import generate_latest, CollectorRegistry, CONTENT_TYPE_L
 class session:
     def __init__(self) -> None:
         self.registry = CollectorRegistry()
-        self.metrics: dict[str, Union[Gauge, Info]] = {}
+        self.metrics: dict[str, Union[Gauge, Info]] = {"clients": Gauge(
+                                                        "clients",
+                                                        "connected clients",
+                                                        ["name", "ip", "ID"], registry=self.registry
+                                                    )
+        }
     
     def _set_value(self, key: str, value: str|int|float) -> None:
         name = key.replace(".", "_")
@@ -39,6 +44,11 @@ class session:
             + b"\r\n"
             + data
         )
+    
+    def addclient(self, name: str, ID: str, ip: str|None = None) -> None:
+        self.metrics["clients"].labels(name=name, ip=str(ip), ID=ID).set(1) # type: ignore
+    def removeclient(self, name: str, ID: str, ip: str|None = None) -> None:
+        self.metrics["clients"].remove_by_labels({"name": name, "ip": str(ip), "ID": ID})
 
 if __name__ == "__main__":
     s = session()

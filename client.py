@@ -3,6 +3,7 @@ import sys
 import time
 import json
 import socket
+import secrets
 import argparse
 import threading
 import traceback
@@ -184,6 +185,12 @@ if __name__ == "__main__":
         help="disable the beep sound for debug"
     )
     
+    parser.add_argument(
+        "--name",
+        type=str,
+        help="Client name displayed on server side"
+    )
+    
     args, unknown = parser.parse_known_args()
     
     if unknown:
@@ -191,6 +198,7 @@ if __name__ == "__main__":
         sys.exit(187)
     
     JSON["beep"] = args.no_beep
+    if args.name: JSON["name"] = args.name
     
     app = main(JSON, beep=JSON["beep"])
     sock = None
@@ -205,7 +213,10 @@ if __name__ == "__main__":
                 
                 session = protocol.network(sock)
                 
-                session.send({"type": "handshake"})
+                name = JSON.get("name", secrets.token_hex(8))
+                print(f"name client : {name}")
+                
+                session.send({"type": "handshake_name", "name": name})
                 if session.recv()["type"] == "handshake_ack":
                     print("Connect : OK")
                     break

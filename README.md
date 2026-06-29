@@ -28,5 +28,8 @@ Caractéristiques principales :
 - 2 : Dernière version expérimentale : très rapide, faible consommation de ressources
 - valeur par defaut : 2
 
-## Update
-Modification du code permettant de réduire la charge sur le réseau (puisque moins besoin de requêtes du client pour l'actualisation), tout en offrant un temps de réactivité réduit pour signaler un changement sur le serveur vers le client.
+# INFO
+When the client runs on the same host as the server, the shutdown threshold must be adjusted to avoid race conditions during coordinated shutdown.
+If all components share the same threshold, the master node may terminate before propagating shutdown signals to its clients.
+
+Therefore, the master server should use a lower threshold than its clients (e.g., 20% for the master vs 25% for clients) to guarantee proper shutdown sequencing.

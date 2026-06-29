@@ -2,6 +2,7 @@ import sys
 import json
 import time
 import socket
+import secrets
 import argparse
 import threading
 import traceback
@@ -52,9 +53,10 @@ class UPS:
                 return self.cache["data"]
     
 
-def client(sock: socket.socket, ups: UPS):
+def client(metrics: prometheus.session, sock: socket.socket, addr, ups: UPS):
     LastStatus: str = ""
     timeoutNoPing = 10
+    name = ID = None
     try:
         sock.settimeout(0.5)
         sesssion = protocol.network(sock)
@@ -63,9 +65,15 @@ def client(sock: socket.socket, ups: UPS):
                         "ping": time.monotonic()
                     }
         
-        if sesssion.recv()["type"] != "handshake":
+        data = sesssion.recv()
+        if data["type"] != "handshake_name":
             raise ConnectionError("Expected handshake message")
+        
         sesssion.send({"type": "handshake_ack"})
+        
+        name = str(data.get("name", "unknown"))
+        ID = secrets.token_hex(20)
+        metrics.addclient(name=name, ID=ID, ip=addr[0])
         
         while True:
             try:
@@ -98,10 +106,12 @@ def client(sock: socket.socket, ups: UPS):
     except Exception as e:
         print(traceback.format_exc())
     finally:
+        if (type(name) == str) and (type(ID) == str):
+            metrics.removeclient(name=name, ID=ID, ip=addr[0])
         if sock:
             sock.close()
 
-def prometheus_thread(host: str, port: int, ups: UPS):
+def prometheus_thread(metrics: prometheus.session, host: str, port: int, ups: UPS):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((host, port))
@@ -200,7 +210,7 @@ if __name__ == "__main__":
                     ups_name=JSON["UPSname"], debug=args.debug)
         
         if args.prometheus:
-            threading.Thread(target=prometheus_thread, args=(args.host, args.prometheus_port, ups), daemon=True)
+            threading.Thread(target=prometheus_thread, args=(metrics, args.host, args.prometheus_port, ups), daemon=True)
         
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -210,7 +220,7 @@ if __name__ == "__main__":
         while True:
             try:
                 conn, addr = sock.accept()
-                threading.Thread(target=client, args=(conn, ups), daemon=True).start()
+                threading.Thread(target=client, args=(metrics, conn, addr, ups), daemon=True).start()
             except Exception as e:
                 print(traceback.format_exc())
     except KeyboardInterrupt:
