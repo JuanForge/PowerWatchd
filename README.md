@@ -1,5 +1,7 @@
 # PowerWatchd
 
+### This tool is actively maintained. Although updates may not be frequent, this is intentional: development prioritizes stability, reliability, and long-term correctness rather than continuous feature addition. It is personally used to validate its robustness in real usage scenarios.
+
 **Projet open source dédié à la gestion intelligente de l’alimentation des serveurs Linux fonctionnant 24/7.**
 
 Il surveille l’état électrique et les UPS, détecte les coupures ou anomalies, et exécute automatiquement des actions planifiées pour protéger les services, éviter la corruption des données et garantir la continuité du système.

@@ -57,6 +57,8 @@ def client(metrics: prometheus.session, sock: socket.socket, addr, ups: UPS):
     LastStatus: str = ""
     timeoutNoPing = 10
     name = ID = None
+    start_time_connect = time.monotonic()
+    
     try:
         sock.settimeout(0.5)
         sesssion = protocol.network(sock)
@@ -73,9 +75,10 @@ def client(metrics: prometheus.session, sock: socket.socket, addr, ups: UPS):
         
         name = str(data.get("name", "unknown"))
         ID = secrets.token_hex(20)
-        metrics.addclient(name=name, ID=ID, ip=addr[0])
+        #metrics.addclient(name=name, ID=ID, ip=addr[0])
         
         while True:
+            metrics.addclient(name=name, ID=ID, ip=addr[0], time=int(start_time_connect))
             try:
                 data = sesssion.recv()
                 

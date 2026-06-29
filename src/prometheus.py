@@ -47,8 +47,8 @@ class session:
             + data
         )
     
-    def addclient(self, name: str, ID: str, ip: str|None = None) -> None:
-        self.metrics["clients"].labels(name=name, ip=str(ip), ID=ID).set(1) # type: ignore
+    def addclient(self, name: str, ID: str, ip: str|None = None, time: int = 1) -> None:
+        self.metrics["clients"].labels(name=name, ip=str(ip), ID=ID).set(time) # type: ignore
     def removeclient(self, name: str, ID: str, ip: str|None = None) -> None:
         self.metrics["clients"].remove_by_labels({"name": name, "ip": str(ip), "ID": ID})
 
