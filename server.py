@@ -78,7 +78,7 @@ def client(metrics: prometheus.session, sock: socket.socket, addr, ups: UPS):
         #metrics.addclient(name=name, ID=ID, ip=addr[0])
         
         while True:
-            metrics.addclient(name=name, ID=ID, ip=addr[0], time=int(start_time_connect))
+            metrics.addclient(name=name, ID=ID, ip=addr[0], time=int(time.monotonic() - start_time_connect))
             try:
                 data = sesssion.recv()
                 
