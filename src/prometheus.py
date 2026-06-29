@@ -20,12 +20,14 @@ class session:
             
             if m == None:
                 m = Gauge(name, key, registry=self.registry)
+                self.metrics[name] = m
             
             if isinstance(m, Gauge): m.set(value)
             
         except ValueError:
             if m == None:
                 m = Info(name, key, registry=self.registry)
+                self.metrics[name] = m
             
             if isinstance(m, Info): m.info({"value": str(value)})
     
