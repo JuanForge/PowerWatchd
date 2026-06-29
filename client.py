@@ -58,13 +58,13 @@ def audio(STOP):
     else:
         return True
 
-def shutdown(bus: SystemBus):
+def shutdown(bus):
     time.sleep(2)
     login1 = bus.get(".login1")
     login1.PowerOff(False)
     return True
 
-def unit(percent: int, task: dict, bus: SystemBus, tasks: list):
+def unit(percent: int, task: dict, bus: function, tasks: list):
     for tache in tasks:
         if task['name'] in tache.get('dependency', []):
             status = systemd.status(tache['name'], bus=bus)
@@ -80,7 +80,7 @@ def unit(percent: int, task: dict, bus: SystemBus, tasks: list):
         return False
 
 class main:
-    def __init__(self, JSON, save: dict = None, beep: bool = True):
+    def __init__(self, JSON, save: dict|None = None, beep: bool = True):
         if save == None:
             self.data = {}
         else:
@@ -104,10 +104,10 @@ class main:
             
             if self.oldstatus == True:
                 for task in tasks:
-                    status = systemd.status(task['name'], bus=self.bus)
-                    if isinstance(status, dict):
-                        if status['status'] in ('active',):
-                            self.service_table.append({"name": task['name'], "status": status['status'], "dependency": task.get('dependency', [])})
+                    _status = systemd.status(task['name'], bus=self.bus)
+                    if isinstance(_status, dict):
+                        if _status['status'] in ('active',):
+                            self.service_table.append({"name": task['name'], "status": _status['status'], "dependency": task.get('dependency', [])})
             
             for task in tasks:
                 unit(charge, task, bus=self.bus, tasks=tasks)
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     JSON["beep"] = args.no_beep
     
     app = main(JSON, beep=JSON["beep"])
-    
+    sock = None
     try:
         i = 0
         while i != JSON["offlineServer"]["retry"]:

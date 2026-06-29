@@ -3,7 +3,7 @@ import traceback
 
 from pydbus import SystemBus
 
-def start(name, bus: SystemBus) -> bool:
+def start(name, bus) -> bool:
     try:
         systemd1 = bus.get(".systemd1")
         full_unit_name = f"{name}.service"
@@ -25,7 +25,7 @@ def start(name, bus: SystemBus) -> bool:
         print(f"{name} : [ERREUR] Impossible de démarrer le service : {traceback.format_exc()}")
         return False
 
-def stop(name, bus: SystemBus) -> bool:
+def stop(name, bus) -> bool:
         try:
             systemd1 = bus.get(".systemd1")
             full_unit_name = f"{name}.service"

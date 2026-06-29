@@ -5,7 +5,6 @@ import socket
 import argparse
 import threading
 import traceback
-from typing import TypedDict
 
 from src import protocol
 from version import __version__, __schemaVersion__
@@ -13,9 +12,10 @@ from src.ups import backend0
 from src.ups import backend1
 from src.ups import backend2
 
-class StatusDict(TypedDict):
-    ups_status: str
-    battery_charge: str
+from src import prometheus
+
+metrics = prometheus.session()
+
 class UPS:
     def __init__(self, cacheTime: int, backend: int, ups_name: str, debug: bool = False):
         self.lock = threading.Lock()
@@ -36,7 +36,7 @@ class UPS:
         with self.lock:
             self.timelifecache = x
     
-    def status(self) -> StatusDict:
+    def status(self) -> dict:
         with self.lock:
             if self.cache.get("time", 0) < time.monotonic() - self.timelifecache:
                 start_time = time.monotonic()
@@ -101,6 +101,28 @@ def client(sock: socket.socket, ups: UPS):
         if sock:
             sock.close()
 
+def prometheus_thread(host: str, port: int, ups: UPS):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((host, port))
+    sock.listen(20)
+    
+    while True:
+        try:
+            conn, addr = sock.accept()
+            
+            data = b""
+            while b"\r\n\r\n" not in data and len(data) < ( 1024 * 1024 * 4):
+                chunk = conn.recv(1024)
+                if not chunk:
+                    break
+                data += chunk
+            else:
+                metrics.update(ups.status())
+                conn.sendall(metrics._dumps())
+        except Exception as e:
+            print(traceback.format_exc())
+
 if __name__ == "__main__":
     with open('config.server.json', 'r') as file:
         JSON:dict = json.load(file)
@@ -150,12 +172,23 @@ if __name__ == "__main__":
         action="store_true",
         help="enable debugging output for the program"
     )
+    parser.add_argument(
+        "--prometheus",
+        action="store_true",
+        help="Expose UPS information in Prometheus format."
+    )
+    parser.add_argument(
+        "--prometheus-port",
+        type=int,
+        default=2162
+    )
     
     args, unknown = parser.parse_known_args()
     
     if unknown:
         print(f"Error: Unrecognized arguments: {', '.join(unknown)}")
         sys.exit(139)
+    
     
     JSON["cacheUPStime"] = args.cacheUPStime
     JSON["UPS"] = args.UPSname
@@ -166,7 +199,10 @@ if __name__ == "__main__":
                     backend=JSON.get("UPSbackend", 2),
                     ups_name=JSON["UPSname"], debug=args.debug)
         
-        sock = server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if args.prometheus:
+            threading.Thread(target=prometheus_thread, args=(args.host, args.prometheus_port, ups), daemon=True)
+        
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((args.host, args.port))
         sock.listen(20)

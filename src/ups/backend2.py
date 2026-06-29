@@ -31,10 +31,10 @@ if __name__ == "__main__":
     import json
     session2 = session("ecoEaton", "127.0.0.1", 3493)
     liste = []
-    last:str = ""
+    last:dict = {}
     for i in range(1):
         start_time = time.perf_counter()
-        last:str =  session2.status()
+        last:dict =  session2.status()
         end_time = time.perf_counter()
         liste.append(end_time  - start_time)
     
