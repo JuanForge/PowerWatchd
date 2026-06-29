@@ -65,7 +65,7 @@ def shutdown(bus):
     login1.PowerOff(False)
     return True
 
-def unit(percent: int, task: dict, bus: function, tasks: list):
+def unit(percent: int, task: dict, bus, tasks: list):
     for tache in tasks:
         if task['name'] in tache.get('dependency', []):
             status = systemd.status(tache['name'], bus=bus)
