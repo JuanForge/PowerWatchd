@@ -25,11 +25,22 @@ class session:
             if isinstance(m, Gauge): m.set(value)
             
         except ValueError:
-            if m == None:
-                m = Info(name, key, registry=self.registry)
-                self.metrics[name] = m
-            
-            if isinstance(m, Info): m.info({"value": str(value)})
+            if name == "ups_status":
+                if "OL" in str(value):
+                    online = 1
+                elif "OB" in str(value):
+                    online = 0
+                else:
+                    online = 2
+                if m == None:
+                    m = Gauge(name, key, registry=self.registry)
+                    self.metrics[name] = m
+                if isinstance(m, Gauge): m.set(online)
+            else:
+                if m == None:
+                    m = Info(name, key, registry=self.registry)
+                    self.metrics[name] = m
+                if isinstance(m, Info): m.info({"value": str(value)})
     
     def update(self, dico: dict[str, str | int | float]) -> dict:
         for key, value in dico.items():
