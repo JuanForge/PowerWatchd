@@ -98,6 +98,7 @@ class main:
         self.threads = None
         self.service_table = []
         self.beep = beep
+        self.tasks = self.JSON['OnBattery']['StopTask']
     
     def update(self, status: bool, charge: int):
         if status == False:
@@ -107,14 +108,14 @@ class main:
                 self.threadbeep.start()
             
             if self.oldstatus == True:
-                for task in tasks:
+                for task in self.tasks:
                     _status = systemd.status(task['name'], bus=self.bus)
                     if isinstance(_status, dict):
                         if _status['status'] in ('active',):
                             self.service_table.append({"name": task['name'], "status": _status['status'], "dependency": task.get('dependency', [])})
             
-            for task in tasks:
-                unit(charge, task, bus=self.bus, tasks=tasks)
+            for task in self.tasks:
+                unit(charge, task, bus=self.bus, tasks=self.tasks)
             
             if charge <= JSON["OnBattery"]["shutdown"]["percent"]:
                 print("SHUTDOWN")
