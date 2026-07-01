@@ -15,23 +15,29 @@ from src.ups import backend2
 
 from src import prometheus
 
-metrics = prometheus.session()
-
 class UPS:
-    def __init__(self, cacheTime: int, backend: int, ups_name: str, debug: bool = False):
+    class backend_ConnectionRefusedError(Exception): pass
+    def __init__(self, cacheTime: int, backend: int, ups_name: str, debug: bool = False, simulate: dict|None = None):
         self.lock = threading.Lock()
         self.cache = {}
         self.timelifecache = cacheTime
         self.debug = debug
+        self.simulate = {
+                            "__meta__": {"start_time": time.monotonic()},
+                            "simulate": simulate
+                        }
         
-        if backend == 0:
-            self.backend = backend0.session(ups_name=ups_name)
-        elif backend == 1:
-            self.backend = backend1.session(ups_name=ups_name)
-        elif backend == 2:
-            self.backend = backend2.session(ups_name=ups_name)
-        else:
-            raise RuntimeError("Invalid backend number.")
+        try:
+            if backend == 0:
+                self.backend = backend0.session(ups_name=ups_name)
+            elif backend == 1:
+                self.backend = backend1.session(ups_name=ups_name)
+            elif backend == 2:
+                self.backend = backend2.session(ups_name=ups_name)
+            else:
+                raise RuntimeError("Invalid backend number.")
+        except ConnectionRefusedError:
+            raise self.backend_ConnectionRefusedError(traceback.format_exc())
     
     def setTimeLifeCache(self, x: int | float):
         with self.lock:
@@ -41,17 +47,22 @@ class UPS:
         with self.lock:
             if self.cache.get("time", 0) < time.monotonic() - self.timelifecache:
                 start_time = time.monotonic()
+                
                 self.cache["data"] = self.backend.status()
+                if self.cache["data"] == None:
+                    raise RuntimeError("UPS data stale ( 53 )")
+                
+                if self.simulate["simulate"]:
+                    self.cache["data"]["battery.charge"] = str(max(
+                        0,
+                        100 - (time.monotonic() - self.simulate["__meta__"]["start_time"]) * self.simulate["simulate"]["battery_drain_rate_sec"]
+                    ))
+                
                 if self.debug:
                     print(f"time for status ups : {time.monotonic() - start_time}")
                 self.cache["time"] = time.monotonic()
-                if self.cache["data"] == None:
-                    raise RuntimeError("UPS data stale ( 32 )")
-                else:
-                    return self.cache["data"]
-            else:
-                return self.cache["data"]
-    
+            
+            return self.cache["data"]
 
 def client(metrics: prometheus.session, sock: socket.socket, addr, ups: UPS):
     LastStatus: str = ""
@@ -75,7 +86,6 @@ def client(metrics: prometheus.session, sock: socket.socket, addr, ups: UPS):
         
         name = str(data.get("name", "unknown"))
         ID = secrets.token_hex(20)
-        #metrics.addclient(name=name, ID=ID, ip=addr[0])
         
         while True:
             metrics.addclient(name=name, ID=ID, ip=addr[0], time=int(time.monotonic() - start_time_connect))
@@ -144,6 +154,10 @@ if __name__ == "__main__":
     if JSON["schemaVersion"] != __schemaVersion__:
         sys.exit(109)
     
+    with open('simulate.profiles.json', 'r') as file:
+        profile_simulate:dict = json.load(file)
+        del profile_simulate["index"]
+    
     parser = argparse.ArgumentParser(
         description="Configuration CLI",
         allow_abbrev=False
@@ -174,10 +188,10 @@ if __name__ == "__main__":
     )
     
     parser.add_argument(
-        "--UPSbackend",
+        "--backend",
         type=int,
-        default=JSON["UPSbackend"],
-        help=f"UPS backend ID, default : {JSON['UPSbackend']}",
+        default=JSON["backend"],
+        help=f"UPS backend ID, default : {JSON['backend']}",
         choices=[0, 1, 2]
     )
     
@@ -196,6 +210,31 @@ if __name__ == "__main__":
         type=int,
         default=2162
     )
+    parser.add_argument(
+        "--simulate-profile",
+        type=str,
+        default=False,
+        help=f"Use a predefined simulation profile to inject synthetic UPS states for testing purposes.",
+        choices=profile_simulate.keys()
+    )
+    parser.add_argument(
+        "--max-clients",
+        type=int,
+        help="Maximum number of clients connected to the server.",
+        default=-1
+    )
+    # parser.add_argument(
+    #     "--simulate-power-outage",
+    #     action="store_true",
+    #     help=("Injects a simulated UPS state transition from online (OL) ")
+    #     + ("to on-battery (OB) by overriding exported metrics for testing and monitoring purposes.")
+    # )
+    # parser.add_argument(
+    #     "--battery-drain-rate",
+    #     type=int,
+    #     default=False,
+    #     help="Battery percentage decrease per second during simulation."
+    # )
     
     args, unknown = parser.parse_known_args()
     
@@ -203,15 +242,30 @@ if __name__ == "__main__":
         print(f"Error: Unrecognized arguments: {', '.join(unknown)}")
         sys.exit(139)
     
+    if any([args.simulate_profile]): # args.simulate_power_outage, args.battery_drain_rate
+        print("\033[38;5;208m[WARNING]\033[0m [TEST MODE] Application started in simulation mode. This instance is NOT intended for production use.\033[0m")
     
-    JSON["cacheUPStime"] = args.cacheUPStime
-    JSON["UPS"] = args.UPSname
-    JSON["UPSbackend"] = args.UPSbackend
+    simulate_profile = None
+    
+    if args.simulate_profile:
+        if not str(args.simulate_profile) in profile_simulate.keys():
+            print("The requested profile does not exist.")
+            sys.exit(234)
+        else:
+            simulate_profile: dict|None = profile_simulate[args.simulate_profile]
+    
+    
+    if args.cacheUPStime: JSON["cacheUPStime"] = args.cacheUPStime
+    if args.UPSname: JSON["UPS"] = args.UPSname
+    if args.UPSbackend: JSON["backend"] = args.UPSbackend
+    
+    metrics = prometheus.session()
+    threads: list[threading.Thread] = []
     
     try:
         ups = UPS(cacheTime=JSON["cacheUPStime"],
-                    backend=JSON.get("UPSbackend", 2),
-                    ups_name=JSON["UPSname"], debug=args.debug)
+                    backend=JSON.get("backend", 2),
+                    ups_name=JSON["UPSname"], debug=args.debug, simulate=simulate_profile)
         
         if args.prometheus:
             threading.Thread(target=prometheus_thread, args=(metrics, args.host, args.prometheus_port, ups), daemon=True).start()
@@ -224,10 +278,23 @@ if __name__ == "__main__":
         while True:
             try:
                 conn, addr = sock.accept()
-                threading.Thread(target=client, args=(metrics, conn, addr, ups), daemon=True).start()
+                if int(args.max_clients) == -1 or len(threads) <= int(args.max_clients):
+                    thread = threading.Thread(target=client, args=(metrics, conn, addr, ups), daemon=True)
+                    thread.start()
+                    threads.append(thread)
+                    
+                    for unit in threads.copy():
+                        if not unit.is_alive():
+                            unit.join()
+                            threads.remove(unit)
+                else:
+                    try: conn.close()
+                    except: pass
             except Exception as e:
                 print(traceback.format_exc())
     except KeyboardInterrupt:
         pass
+    except UPS.backend_ConnectionRefusedError as e:
+        print(f"{e}\nError connecting to the UPS backend.")
     except Exception as e:
         print(traceback.format_exc())

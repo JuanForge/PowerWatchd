@@ -11,11 +11,14 @@ import traceback
 from pathlib import Path
 from pydbus import SystemBus
 
-from src import buzzer
 from src import systemd
 from src import protocol
 from version import __version__, __schemaVersion__
 
+ifbuzzer = True
+
+if ifbuzzer:
+    from src import buzzer
 
 def keepalive(session: protocol.network):
     try:
@@ -147,16 +150,16 @@ class main:
     def save(self) -> list: return []
 
 if __name__ == "__main__":
-    if True == True:
-        buzzer.beep(2000, 500)
+    if True == ifbuzzer:
+        buzzer.beep(2000, 500) # type: ignore
     
     os.chdir(Path(__file__).resolve().parent)
     
     with open('config.client.json', 'r') as file:
         JSON: dict = json.load(file)
     
-    if JSON["schemaVersion"] != __schemaVersion__:
-        sys.exit(153)
+    if JSON.get("schemaVersion", str("")) != __schemaVersion__:
+        sys.exit(158)
     
     tasks = JSON['OnBattery']['StopTask']
     if not AntiBoucle(tasks):
@@ -184,7 +187,11 @@ if __name__ == "__main__":
         action="store_false",
         help="disable the beep sound for debug"
     )
-    
+    # parser.add_argument(
+    #     "--no-beep-lib",
+    #     action="store_false",
+    #     help="The buzzer library for C/Python is not imported."
+    # )
     parser.add_argument(
         "--name",
         type=str,
@@ -196,6 +203,9 @@ if __name__ == "__main__":
     if unknown:
         print(f"Error: Unrecognized arguments: {', '.join(unknown)}")
         sys.exit(187)
+    
+    if not args.no_beep_lib:
+        from src import buzzer
     
     JSON["beep"] = args.no_beep
     if args.name: JSON["name"] = args.name
@@ -209,7 +219,7 @@ if __name__ == "__main__":
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(JSON["offlineServer"]["tcpTimeoutSec"])
                 print(f"Connect ( try: {i+1})...")
-                sock.connect(("127.0.0.1", 2152))
+                sock.connect((args.host, args.port))
                 
                 session = protocol.network(sock)
                 
@@ -225,7 +235,7 @@ if __name__ == "__main__":
             except Exception as e:
                 print(str(e))
                 i += 1
-                buzzer.beep(3000, 500)
+                buzzer.beep(3000, 500) # type: ignore
                 time.sleep(JSON["offlineServer"]["retryIntervalSec"])
         else:
             if JSON["offlineServer"]["shutdown"] == True:

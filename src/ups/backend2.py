@@ -14,7 +14,7 @@ class session:
                 d[parts[2]] = parts[3][1:-1]
         return d
     
-    def status(self):
+    def status(self) -> dict:
         self.sock.sendall(f"LIST VAR {self.ups_name}\n".encode("utf-8"))
         data = b""
         while True:
