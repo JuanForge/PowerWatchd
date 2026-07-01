@@ -96,9 +96,9 @@ class main:
         self.threadbeepSTOP = [False]
         self.oldstatus = None
         self.threads = None
-        self.service_table = []
+        self.service_table: list|list[dict] = []
         self.beep = beep
-        self.tasks = self.JSON['OnBattery']['StopTask']
+        self.tasks: list[dict] = self.JSON['OnBattery']['StopTask']
     
     def update(self, status: bool, charge: int):
         if status == False:
