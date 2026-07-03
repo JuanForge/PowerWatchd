@@ -17,7 +17,7 @@ from src import prometheus
 
 class UPS:
     class backend_ConnectionRefusedError(Exception): pass
-    def __init__(self, cacheTime: int, backend: int, ups_name: str, debug: bool = False, simulate: dict|None = None):
+    def __init__(self, cacheTime: int, backend: int, ups_name: str, debug: bool = False, simulate: dict|None = None, ups_host: str = "", ups_port: int = 0):
         self.lock = threading.Lock()
         self.cache = {}
         self.timelifecache = cacheTime
@@ -29,11 +29,11 @@ class UPS:
         
         try:
             if backend == 0:
-                self.backend = backend0.session(ups_name=ups_name)
+                self.backend = backend0.session(ups_name=ups_name, host=ups_host, port=ups_port)
             elif backend == 1:
-                self.backend = backend1.session(ups_name=ups_name)
+                self.backend = backend1.session(ups_name=ups_name, host=ups_host, port=ups_port)
             elif backend == 2:
-                self.backend = backend2.session(ups_name=ups_name)
+                self.backend = backend2.session(ups_name=ups_name, host=ups_host, port=ups_port)
             else:
                 raise RuntimeError("Invalid backend number.")
         except ConnectionRefusedError:
@@ -174,21 +174,25 @@ if __name__ == "__main__":
         type=int,
         default=2152
     )
-    
     parser.add_argument(
-        "--cacheUPStime",
+        "--version",
+        action="store_true",
+        help="display the version and exit."
+    )
+    parser.add_argument(
+        "--ups-cache-time",
         type=int,
         default=JSON["cacheUPStime"],
         help=f"Cache uptime (seconds), default : {JSON['cacheUPStime']}"
     )
     
     parser.add_argument(
-        "--UPSname",
-        help=f"UPS name, default : {JSON['UPSname']}"
+        "--ups-name",
+        help=f"Name of the UPS used by the backend, default : {JSON['UPSname']}"
     )
     
     parser.add_argument(
-        "--backend",
+        "--ups-backend",
         type=int,
         default=JSON["backend"],
         help=f"UPS backend ID, default : {JSON['backend']}",
@@ -223,6 +227,18 @@ if __name__ == "__main__":
         help="Maximum number of clients connected to the server.",
         default=-1
     )
+    parser.add_argument(
+        "--ups-backend-host",
+        type=str,
+        help="Backend IP address to connect to.",
+        default="127.0.0.1"
+    )
+    parser.add_argument(
+        "--ups-backend-port",
+        type=int,
+        help="Port of the backend to connect to.",
+        default=3493
+    )
     # parser.add_argument(
     #     "--simulate-power-outage",
     #     action="store_true",
@@ -241,7 +257,11 @@ if __name__ == "__main__":
     if unknown:
         print(f"Error: Unrecognized arguments: {', '.join(unknown)}")
         sys.exit(139)
+    print("\033[38;5;208m[WARNING]\033[0m Use CLI arguments instead. File-based configuration will be deprecated.\033[0m")
     
+    if args.version:
+        print(f"version : {__version__}")
+        sys.exit(0)
     if any([args.simulate_profile]): # args.simulate_power_outage, args.battery_drain_rate
         print("\033[38;5;208m[WARNING]\033[0m [TEST MODE] Application started in simulation mode. This instance is NOT intended for production use.\033[0m")
     
@@ -254,18 +274,16 @@ if __name__ == "__main__":
         else:
             simulate_profile: dict|None = profile_simulate[args.simulate_profile]
     
-    
-    if args.cacheUPStime: JSON["cacheUPStime"] = args.cacheUPStime
-    if args.UPSname: JSON["UPS"] = args.UPSname
-    if args.UPSbackend: JSON["backend"] = args.UPSbackend
-    
     metrics = prometheus.session()
     threads: list[threading.Thread] = []
     
     try:
-        ups = UPS(cacheTime=JSON["cacheUPStime"],
-                    backend=JSON.get("backend", 2),
-                    ups_name=JSON["UPSname"], debug=args.debug, simulate=simulate_profile)
+        ups = UPS(cacheTime=args.ups_cache_time or JSON.get("cacheUPStime", 0),
+                    backend=args.ups_backend    or JSON.get("backend", 2),
+                    ups_name=args.ups_name      or JSON.get("UPSname", "ecoEaton"),
+                    debug=args.debug, simulate=simulate_profile,
+                    ups_host=args.ups_backend_host,
+                    ups_port=args.ups_backend_port)
         
         if args.prometheus:
             threading.Thread(target=prometheus_thread, args=(metrics, args.host, args.prometheus_port, ups), daemon=True).start()

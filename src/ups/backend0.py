@@ -2,14 +2,15 @@ import traceback
 import subprocess
 
 class session:
-    def __init__(self, ups_name: str, host: str = "127.0.0.1"):
+    def __init__(self, ups_name: str, host: str = "127.0.0.1", port: int = 2162):
         self.name = ups_name
         self.host = host
+        self.port = port
     
     def status(self):
         try:
             result = subprocess.run(
-                ['upsc', f'{self.name}@{self.host}'],
+                ['upsc', f'{self.name}@{self.host}:{self.port}'],
                 capture_output=True, text=True, timeout=5
             )
             if result.returncode != 0:

@@ -132,7 +132,7 @@ class main:
                 self.threadbeepSTOP[0] = False
                 
                 for task in self.service_table:
-                    def __load__(tache: str):
+                    def __load__(tache: str) -> None:
                         current = next((t for t in self.service_table if t['name'] == tache), None)
                         if not current:
                             print(f"[WARNING] : Unknown task : {tache}")
@@ -182,7 +182,11 @@ if __name__ == "__main__":
         type=int,
         default=2152
     )
-    
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="display the version and exit."
+    )
     parser.add_argument(
         "--no-beep",
         action="store_false",
@@ -204,6 +208,10 @@ if __name__ == "__main__":
     if unknown:
         print(f"Error: Unrecognized arguments: {', '.join(unknown)}")
         sys.exit(187)
+    
+    if args.version:
+        print(f"version : {__version__}")
+        sys.exit(0)
     
     if not args.no_beep_lib:
         from src import buzzer
